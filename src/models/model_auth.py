@@ -3,28 +3,28 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
 import sqlalchemy.dialects.postgresql as pg
-from sqlalchemy import DateTime, ForeignKey, String
+from sqlalchemy import DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-if TYPE_CHECKING:
-    from .model_auth import User
 from src.db.database import Base
 
+if TYPE_CHECKING:
+    from .model_url import URL
 
-class URL(Base):
-    __tablename__ = "url"
+
+class User(Base):
+    __tablename__ = "user"
     uid: Mapped[uuid.UUID] = mapped_column(
         pg.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    url: Mapped[str] = mapped_column(String)
+    username: Mapped[str] = mapped_column(String, unique=True, index=True)
+    full_name: Mapped[str] = mapped_column(String(30))
+    password_hashed: Mapped[str] = mapped_column(String)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
     )
 
-    user_uid: Mapped[uuid.UUID] = mapped_column(
-        pg.UUID(as_uuid=True), ForeignKey("user.uid")
-    )
-    user: Mapped["User"] = relationship(
-        "User", back_populates="urls", lazy="selectin", foreign_keys=[user_uid]
+    urls: Mapped[list["URL"]] = relationship(
+        "URL", back_populates="user", lazy="selectin"
     )

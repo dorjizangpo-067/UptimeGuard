@@ -1,8 +1,11 @@
-from pydantic import BaseModel, EmailStr, Field, SecretStr, model_validator
+import uuid
+
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, SecretStr, model_validator
 
 
 class User(BaseModel):
     email: EmailStr
+    model_config = ConfigDict(from_attributes=True)
 
 
 class CreateUser(User):
@@ -22,7 +25,13 @@ class LoginUser(User):
     password: SecretStr
 
 
-class PriviteUser(User):
-    password: SecretStr
+class PublicUserResponse(User):
+    uid: uuid.UUID
+    full_name: str
+    username: str = Field(max_length=30)
+
+
+class PriviteUserResponse(User):
+    uid: uuid.UUID
     username: str = Field(max_length=30)
     full_name: str

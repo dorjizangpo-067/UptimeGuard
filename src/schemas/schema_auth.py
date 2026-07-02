@@ -35,3 +35,10 @@ class PriviteUserResponse(User):
     uid: uuid.UUID
     username: str = Field(max_length=30)
     full_name: str
+
+
+class UpdateUser(BaseModel):
+    username: str | None = Field(default=None, max_length=30)
+    full_name: str | None = Field(default=None)
+    email: EmailStr | None = Field(default=None)
+    password: SecretStr | None = Field(default=None)

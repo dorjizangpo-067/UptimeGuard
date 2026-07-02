@@ -1,5 +1,3 @@
-import email
-
 from pydantic import EmailStr
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -44,3 +42,14 @@ class Auth:
         await session.commit()
         await session.refresh(new_user)
         return PriviteUserResponse.model_validate(new_user)
+
+    async def update_user(
+        self, user: User, update_user: dict, session: AsyncSession
+    ) -> PriviteUserResponse:
+        for k, v in update_user.items():
+            setattr(user, k, v)
+        session.add(user)
+        await session.commit()
+        await session.refresh(user)
+
+        return PriviteUserResponse.model_validate(user)

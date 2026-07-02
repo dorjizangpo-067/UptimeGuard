@@ -8,7 +8,7 @@ A **production-grade**, asynchronous personal service and API monitoring tool bu
 
 - **Asynchronous Health Checks:** High-frequency service pings powered by `httpx` without blocking the API.
 - **Background Scheduling:** Automated periodic checks managed via Celery Beat.
-- **Secure Dashboard API:** JWT-based user authentication and secure CRUD endpoints for managing monitored URLs.
+- **Secure Dashboard API:** *Implemented* JWT-based user authentication and secure CRUD endpoints for managing users (signup, update). CRUD for monitored URLs is planned.
 - **Real-Time Alerts:** Automated email notifications via `fastapi-mail` triggered immediately upon service failure.
 - **Performance Metrics:** Historic latency tracking and uptime percentage calculations.
 

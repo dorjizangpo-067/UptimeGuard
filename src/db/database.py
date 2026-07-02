@@ -71,6 +71,7 @@ class SessionManager:
 
 
 sessionmanager = SessionManager()
+sessionmanager.init_db()
 
 
 class Base(DeclarativeBase):

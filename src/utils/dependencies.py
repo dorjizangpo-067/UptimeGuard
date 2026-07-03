@@ -1,0 +1,87 @@
+from typing import Any
+
+from fastapi import HTTPException, status
+from fastapi.requests import Request
+from fastapi.security import HTTPBearer
+
+from src.utils.jwt_setup import decode_token
+
+
+class TokenBearer(HTTPBearer):
+    """Base FastAPI dependency for validating JWT Bearer tokens.
+
+    Subclasses must override `verify_token_data` to enforce rules specific
+    to the token type they accept (e.g. access vs refresh). Use as
+    `Depends(AccessTokenBearer())` or `Depends(RefreshTokenBearer())`.
+    """
+
+    def __init__(self, auto_error: bool = True) -> None:
+        super().__init__(auto_error=auto_error)
+
+    async def __call__(self, request: Request) -> dict[str, Any] | None:
+        """Extract, decode, and validate the Bearer token on `request`.
+
+        Returns:
+            The decoded token payload (claims dict).
+
+        Raises:
+            HTTPException: 403 if the header is missing, the token can't
+                be decoded, or it fails subclass-specific validation.
+        """
+
+        # Only reachable when auto_error=False and no header was sent;
+        # with auto_error=True HTTPBearer raises before we get here.
+        creds = await super().__call__(request)
+        if creds is None:
+            return None
+
+        token = creds.credentials
+        token_data = decode_token(token=token)
+
+        # decode_token returns None then Exception raise
+        if token_data is None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "error": "This token is invalid or expired",
+                    "resolution": "Please get new token",
+                },
+            )
+
+        # chiled class to ckeck token is access or refresh token
+        self.verify_token_data(token_data=token_data)
+
+        return token_data
+
+    def verify_token_data(self, token_data: dict[str, Any]) -> None:
+        """Enforce token-type-specific rules. Must be overridden.
+
+        Raises:
+            HTTPException: if `token_data` fails the subclass's rule.
+        """
+
+        raise NotImplementedError("Override this method in child classes")
+
+
+class AccessTokenBearer(TokenBearer):
+    """Dependency for routes that require an access token."""
+
+    def verify_token_data(self, token_data: dict) -> None:
+        # reject refresh token
+        if token_data and token_data["refresh"]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Please provide an access token",
+            )
+
+
+class RefreshTokenBearer(TokenBearer):
+    """Dependency for routes that require a refresh token (e.g. /auth/refresh)."""
+
+    def verify_token_data(self, token_data: dict) -> None:
+        # reject access token
+        if token_data and not token_data["refresh"]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Please provide a refresh token",
+            )

@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.model_auth import User
 from src.schemas.schema_auth import CreateUser, PriviteUserResponse
-from src.utils import generate_password_hash
+from src.utils.utils import generate_password_hash
 
 
 class Auth:

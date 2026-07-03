@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.db.database import sessionmanager
 from src.schemas.schema_auth import CreateUser, PriviteUserResponse, UpdateUser
 from src.services.service_auth import Auth
-from src.utils import generate_password_hash  # Import for hashing new password
+from src.utils.utils import generate_password_hash
 
 auth_router = APIRouter(tags=["Auth"])
 

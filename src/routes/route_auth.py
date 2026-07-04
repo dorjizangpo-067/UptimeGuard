@@ -14,6 +14,11 @@ from src.schemas.schema_auth import (
     UpdateUser,
 )
 from src.services.service_auth import Auth
+from src.utils.dependencies import (
+    AccessTokenBearer,
+    RefreshTokenBearer,
+    get_current_user,
+)
 from src.utils.jwt_setup import create_access_token
 from src.utils.utils import generate_password_hash, verify_password
 
@@ -23,6 +28,8 @@ user_services = Auth()
 
 # Dependencies
 SessionDep = Annotated[AsyncSession, Depends(sessionmanager.get_session)]
+AccessTokenDep = Annotated[dict, AccessTokenBearer()]
+RefreshTokenDep = Annotated[dict, RefreshTokenBearer()]
 
 
 @auth_router.post("/signup")
@@ -124,10 +131,8 @@ async def login(login_data: LoginUser, session: SessionDep) -> dict[str, Any]:
         "user_uid": str(user.uid),
     }
 
-    # generate access token (JWT)
+    # generate access and refresh token
     access_token = create_access_token(user_data=payload)
-
-    # generate access token (JWT)
     refresh_token = create_access_token(
         user_data=payload,
         refresh=True,
@@ -144,3 +149,35 @@ async def login(login_data: LoginUser, session: SessionDep) -> dict[str, Any]:
             "username": user.username,
         },
     }
+
+
+@auth_router.get("/refresh")
+async def get_new_access_token(token_detail: RefreshTokenDep) -> dict:
+    """Generating new Access token Through Refresh Token
+    Args:
+        token_detail: RefreshTokenDep
+    Returns:
+        new_access_token: dict
+    """
+
+    # creating new access token
+    # The RefreshTokenDep already ensures the token is not expired.
+    new_access_token = create_access_token(user_data=token_detail["user"])
+
+    return {"new_access_token": new_access_token}
+
+
+@auth_router.get("/me")
+async def get_current_user_route(
+    token_detail: AccessTokenDep, session: SessionDep
+) -> PriviteUserResponse | None:
+    """Get Current user route
+    Args:
+        token_data: AccessTokenDep,
+        session: SessionDep
+    Returns:
+        PriviteUserResponse or None
+    """
+
+    user = await get_current_user(token_data=token_detail, session=session)
+    return user

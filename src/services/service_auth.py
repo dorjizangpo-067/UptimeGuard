@@ -8,29 +8,53 @@ from src.utils.utils import generate_password_hash
 
 
 class Auth:
-    # fetching user by email
+    """Auth Services"""
+
     async def get_user_by_email(
         self, email: EmailStr, session: AsyncSession
     ) -> User | None:
+        """Fetch user with email
+        Args:
+            email: EmailStr
+            session: AsyncSession
+        Returns:
+            user with matching email or None
+        """
         statement = select(User).where(User.email == email)
         result = await session.execute(statement=statement)
 
         return result.scalar_one_or_none()
 
-    # check user exist or not
     async def user_exist(self, email: EmailStr, session: AsyncSession) -> bool:
+        """Check User email already exist in Database
+        Args:
+            email: EmailStr
+            session: AsyncSession
+        Returns:
+            True or False
+        """
+
         user = await self.get_user_by_email(email=email, session=session)
         if user is None:
             return False
         return True
 
-    # creating new user
     async def user_create(
         self, user_data: CreateUser, session: AsyncSession
     ) -> PriviteUserResponse:
+        """Create New User
+        Args:
+            user_data: CreateUser
+            session: AsyncSession
+        Returns:
+            new User
+        """
+
+        # hash provided Password
         password_hashed = generate_password_hash(
             password=user_data.password.get_secret_value()
         )
+
         new_user = User(
             username=user_data.username,
             email=user_data.email,
@@ -46,8 +70,18 @@ class Auth:
     async def update_user(
         self, user: User, update_user: dict, session: AsyncSession
     ) -> PriviteUserResponse:
+        """Update User Data
+        Args:
+            user: User
+            update_user: dict
+            session: AsyncSession
+        Returns:
+            Updated User
+        """
+
         for k, v in update_user.items():
             setattr(user, k, v)
+
         session.add(user)
         await session.commit()
         await session.refresh(user)

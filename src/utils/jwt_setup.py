@@ -1,6 +1,6 @@
 import logging
 import uuid
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import jwt
@@ -30,7 +30,7 @@ def create_access_token(
 
     payload = {
         "user": user_data,
-        "exp": expiry,
+        "exp": datetime.now(tz=timezone.utc) + expiry,
         "jti": str(uuid.uuid4()),
         "refresh": refresh,
     }

@@ -5,7 +5,7 @@ from fastapi.requests import Request
 from fastapi.security import HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.models.model_auth import User
+from src.schemas.schema_auth import PriviteUserResponse
 from src.services.service_auth import Auth
 from src.utils.jwt_setup import decode_token
 
@@ -108,7 +108,7 @@ def is_token_valid(token: str) -> bool:
 
 async def get_current_user(
     token_data: Annotated[dict, Depends(AccessTokenBearer())], session: AsyncSession
-) -> User | None:
+) -> PriviteUserResponse | None:
     """Get Current User (extract from token_data and search from Database)
     Args:
         token_data: dict[str, Any]
@@ -118,4 +118,4 @@ async def get_current_user(
     """
     user_emil = token_data["user"]["email"]
     user = await user_services.get_user_by_email(email=user_emil, session=session)
-    return user
+    return PriviteUserResponse.model_validate(user)

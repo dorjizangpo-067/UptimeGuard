@@ -1,10 +1,15 @@
-from typing import Any
+from typing import Annotated, Any
 
-from fastapi import HTTPException, status
+from fastapi import Depends, HTTPException, status
 from fastapi.requests import Request
 from fastapi.security import HTTPBearer
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.models.model_auth import User
+from src.services.service_auth import Auth
 from src.utils.jwt_setup import decode_token
+
+user_services = Auth()
 
 
 class TokenBearer(HTTPBearer):
@@ -18,7 +23,7 @@ class TokenBearer(HTTPBearer):
     def __init__(self, auto_error: bool = True) -> None:
         super().__init__(auto_error=auto_error)
 
-    async def __call__(self, request: Request) -> dict[str, Any] | None:
+    async def __call__(self, request: Request) -> dict[str, Any] | None:  # type: ignore[override]
         """Extract, decode, and validate the Bearer token on `request`.
 
         Returns:
@@ -85,3 +90,32 @@ class RefreshTokenBearer(TokenBearer):
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Please provide a refresh token",
             )
+
+
+def is_token_valid(token: str) -> bool:
+    """Verify token validity
+    Args:
+        token: str
+
+    Returns:
+        True if valid and False if Invalid token
+    """
+    token_data = decode_token(token=token)
+    if token_data is None:
+        return False
+    return True
+
+
+async def get_current_user(
+    token_data: Annotated[dict, Depends(AccessTokenBearer())], session: AsyncSession
+) -> User | None:
+    """Get Current User (extract from token_data and search from Database)
+    Args:
+        token_data: dict[str, Any]
+
+    Returns:
+        user Data or None if email in token_data is invilad
+    """
+    user_emil = token_data["user"]["email"]
+    user = await user_services.get_user_by_email(email=user_emil, session=session)
+    return user

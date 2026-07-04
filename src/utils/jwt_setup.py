@@ -60,17 +60,3 @@ def decode_token(token: str) -> dict[str, Any] | None:
     except jwt.PyJWTError as e:
         logging.exception(e)
         return None
-
-
-def is_token_valid(token: str) -> bool:
-    """Verify token validity
-    Args:
-        token: str
-
-    Returns:
-        True if valid and False if Invalid token
-    """
-    token_data = decode_token(token=token)
-    if token_data is None:
-        return False
-    return True

@@ -11,7 +11,7 @@ from src.config import config
 def create_access_token(
     user_data: dict[str, Any],
     expiry: timedelta | None = None,
-    refresh: bool | None = None,
+    refresh: bool = False,
 ) -> str:
     """Generate New Token
 
@@ -30,7 +30,7 @@ def create_access_token(
 
     payload = {
         "user": user_data,
-        "exp": datetime.now(tz=timezone.utc) + expiry,
+        "exp": int((datetime.now(tz=timezone.utc) + expiry).timestamp()),
         "jti": str(uuid.uuid4()),
         "refresh": refresh,
     }

@@ -28,8 +28,8 @@ user_services = Auth()
 
 # Dependencies
 SessionDep = Annotated[AsyncSession, Depends(sessionmanager.get_session)]
-AccessTokenDep = Annotated[dict, AccessTokenBearer()]
-RefreshTokenDep = Annotated[dict, RefreshTokenBearer()]
+AccessTokenDep = Annotated[dict, Depends(AccessTokenBearer())]
+RefreshTokenDep = Annotated[dict, Depends(RefreshTokenBearer())]
 
 
 @auth_router.post("/signup")

@@ -20,6 +20,21 @@ class CreateUrl(URL):
     pass
 
 
+class DisplayUrl(URL):
+    """Display url"""
+
+    uid: uuid.UUID
+    url: str
+    created_at: datetime
+    user_uid: uuid.UUID
+
+
+class UpdateUrl(URL):
+    """Update Url"""
+
+    pass
+
+
 class UserUrlResponse(URL):
     """Display both URL and User"""
 

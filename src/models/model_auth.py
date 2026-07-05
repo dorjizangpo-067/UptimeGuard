@@ -21,6 +21,8 @@ class User(Base):
     email: Mapped[str] = mapped_column(String, index=True, unique=True)
     full_name: Mapped[str] = mapped_column(String(30))
     password_hashed: Mapped[str] = mapped_column(String)
+    is_verified: Mapped[bool] = mapped_column(default=False, nullable=False)
+    is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

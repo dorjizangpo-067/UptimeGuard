@@ -70,3 +70,15 @@ class Url:
         await session.commit()
         await session.refresh(url)
         return DisplayUrl.model_validate(url)
+
+    async def delete_url(self, url_to_delete: URL, session: AsyncSession) -> None:
+        """Delet Url
+        Args:
+            url_to_delete: URL
+            session: AsyncSession
+        Returns:
+            None
+        """
+
+        await session.delete(url_to_delete)
+        await session.commit()

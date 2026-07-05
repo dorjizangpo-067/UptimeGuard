@@ -45,11 +45,24 @@ async def create_user(
     """
 
     # Check user email already exist
-    user_exist = await user_services.user_exist(email=user_data.email, session=session)
-    if user_exist:
+    email_exist = await user_services.email_exist(
+        email=user_data.email, session=session
+    )
+    if email_exist:
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="User with this email aleady exist",
+        )
+
+    # Check username already exist
+    username_exist = await user_services.username_exist(
+        username=user_data.username, session=session
+    )
+
+    if username_exist:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User with this username aleady exist",
         )
 
     user = await user_services.user_create(user_data=user_data, session=session)

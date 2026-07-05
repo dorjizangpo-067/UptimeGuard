@@ -20,12 +20,29 @@ class Auth:
         Returns:
             user with matching email or None
         """
+
         statement = select(User).where(User.email == email)
         result = await session.execute(statement=statement)
 
         return result.scalar_one_or_none()
 
-    async def user_exist(self, email: EmailStr, session: AsyncSession) -> bool:
+    async def get_user_by_username(
+        self, username: str, session: AsyncSession
+    ) -> User | None:
+        """Fetch user with email
+        Args:
+            username: str
+            session: AsyncSession
+        Returns:
+            user with matching email or None
+        """
+
+        statement = select(User).where(User.username == username)
+        result = await session.execute(statement=statement)
+
+        return result.scalar_one_or_none()
+
+    async def email_exist(self, email: EmailStr, session: AsyncSession) -> bool:
         """Check User email already exist in Database
         Args:
             email: EmailStr
@@ -34,8 +51,24 @@ class Auth:
             True or False
         """
 
-        user = await self.get_user_by_email(email=email, session=session)
-        if user is None:
+        user_by_email = await self.get_user_by_email(email=email, session=session)
+        if user_by_email is None:
+            return False
+        return True
+
+    async def username_exist(self, username: str, session: AsyncSession) -> bool:
+        """Check User username already exist in Database
+        Args:
+            username: str
+            session: AsyncSession
+        Returns:
+            True or False
+        """
+
+        user_by_username = await self.get_user_by_username(
+            username=username, session=session
+        )
+        if user_by_username is None:
             return False
         return True
 

@@ -104,21 +104,3 @@ def is_token_valid(token: str) -> bool:
     if token_data is None:
         return False
     return True
-
-
-async def get_current_user(
-    token_data: Annotated[dict, Depends(AccessTokenBearer())], session: AsyncSession
-) -> PriviteUserResponse | None:
-    """Get Current User (extract from token_data and search from Database)
-    Args:
-        token_data: dict[str, Any]
-
-    Returns:
-        user Data or None if email in token_data is invilad
-    """
-
-    user_emil = token_data["user"]["email"]
-    user = await user_services.get_user_by_email(email=user_emil, session=session)
-    if user is None:
-        return None
-    return PriviteUserResponse.model_validate(user)

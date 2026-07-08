@@ -11,8 +11,9 @@ class User(BaseModel):
 class CreateUser(User):
     password: SecretStr
     confirm_password: SecretStr
-    username: str = Field(max_length=30)
     full_name: str
+
+    model_config = ConfigDict(extra="forbid")
 
     @model_validator(mode="after")
     def verify_password_match(self):
@@ -23,22 +24,22 @@ class CreateUser(User):
 
 class LoginUser(User):
     password: SecretStr
+    model_config = ConfigDict(extra="forbid")
 
 
 class PublicUserResponse(User):
     uid: uuid.UUID
     full_name: str
-    username: str = Field(max_length=30)
 
 
 class PriviteUserResponse(User):
     uid: uuid.UUID
-    username: str = Field(max_length=30)
     full_name: str
 
 
 class UpdateUser(BaseModel):
-    username: str | None = Field(default=None, max_length=30)
     full_name: str | None = Field(default=None)
     email: EmailStr | None = Field(default=None)
     password: SecretStr | None = Field(default=None)
+
+    model_config = ConfigDict(extra="forbid")

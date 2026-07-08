@@ -41,7 +41,6 @@ class SessionManager:
             max_overflow=config.MAX_OVERFLOW,
             pool_pre_ping=True,
             connect_args={"ssl": ssl_context},
-            echo=True,  # TODO: for development only
         )
 
         # session factory setup

@@ -1,3 +1,5 @@
+from typing import Any
+
 from pydantic import EmailStr
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,22 +28,6 @@ class Auth:
 
         return result.scalar_one_or_none()
 
-    async def get_user_by_username(
-        self, username: str, session: AsyncSession
-    ) -> User | None:
-        """Fetch user with email
-        Args:
-            username: str
-            session: AsyncSession
-        Returns:
-            user with matching email or None
-        """
-
-        statement = select(User).where(User.username == username)
-        result = await session.execute(statement=statement)
-
-        return result.scalar_one_or_none()
-
     async def email_exist(self, email: EmailStr, session: AsyncSession) -> bool:
         """Check User email already exist in Database
         Args:
@@ -56,21 +42,24 @@ class Auth:
             return False
         return True
 
-    async def username_exist(self, username: str, session: AsyncSession) -> bool:
-        """Check User username already exist in Database
+    async def get_current_user(
+        self,
+        token_data: dict[str, Any],
+        session: AsyncSession,
+    ) -> User | None:
+        """Get Current User (extract from token_data and search from Database)
         Args:
-            username: str
-            session: AsyncSession
+            token_data: dict[str, Any]
+
         Returns:
-            True or False
+            user Data or None if email in token_data is invilad
         """
 
-        user_by_username = await self.get_user_by_username(
-            username=username, session=session
-        )
-        if user_by_username is None:
-            return False
-        return True
+        user_emil = token_data["user"]["email"]
+        user = await self.get_user_by_email(email=user_emil, session=session)
+        if user is None:
+            return None
+        return user
 
     async def user_create(
         self, user_data: CreateUser, session: AsyncSession
@@ -89,7 +78,6 @@ class Auth:
         )
 
         new_user = User(
-            username=user_data.username,
             email=user_data.email,
             full_name=user_data.full_name,
             password_hashed=password_hashed,

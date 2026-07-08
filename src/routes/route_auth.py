@@ -17,7 +17,6 @@ from src.services.service_auth import Auth
 from src.utils.dependencies import (
     AccessTokenBearer,
     RefreshTokenBearer,
-    get_current_user,
 )
 from src.utils.jwt_setup import create_access_token
 from src.utils.utils import generate_password_hash, verify_password
@@ -51,18 +50,7 @@ async def create_user(
     if email_exist:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User with this email aleady exist",
-        )
-
-    # Check username already exist
-    username_exist = await user_services.username_exist(
-        username=user_data.username, session=session
-    )
-
-    if username_exist:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User with this username aleady exist",
+            detail="User aleady exist",
         )
 
     user = await user_services.user_create(user_data=user_data, session=session)
@@ -71,7 +59,10 @@ async def create_user(
 
 @auth_router.patch("/{email}")
 async def update_user(
-    email: EmailStr, update_data: UpdateUser, session: SessionDep
+    email: EmailStr,
+    update_data: UpdateUser,
+    session: SessionDep,
+    token_detail: AccessTokenDep,
 ) -> PriviteUserResponse:
     """Update User Data
     Args:
@@ -83,12 +74,18 @@ async def update_user(
         user: PriviteUserResponse > Updated User Data
 
     """
-    # Check if user exists
-    existing_user = await user_services.get_user_by_email(email=email, session=session)
-    if not existing_user:
+    current_user = await user_services.get_current_user(
+        token_data=token_detail, session=session
+    )
+
+    if current_user is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
+        )
+
+    if current_user.email != email:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invilad Action"
         )
 
     # Prepare update dictionary, ignoring unset fields
@@ -109,7 +106,7 @@ async def update_user(
         )
 
     updated_user = await user_services.update_user(
-        user=existing_user, update_user=update_dict, session=session
+        user=current_user, update_user=update_dict, session=session
     )
 
     return PriviteUserResponse.model_validate(updated_user)
@@ -159,7 +156,6 @@ async def login(login_data: LoginUser, session: SessionDep) -> dict[str, Any]:
         "user": {
             "email": user.email,
             "uid": str(user.uid),
-            "username": user.username,
         },
     }
 
@@ -192,5 +188,7 @@ async def get_current_user_route(
         PriviteUserResponse or None
     """
 
-    user = await get_current_user(token_data=token_detail, session=session)
-    return user
+    user = await user_services.get_current_user(
+        token_data=token_detail, session=session
+    )
+    return PriviteUserResponse.model_validate(user)

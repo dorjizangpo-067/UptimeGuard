@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.database import sessionmanager
 from src.models.model_url import URL
-from src.schemas.schema_url import CreateUrl, DisplayUrl, UpdateUrl, UserUrlResponse
+from src.schemas.schema_url import CreateUrl, DisplayUrl, UpdateUrl
 from src.services.dependencies_url import get_authorized_url
 from src.services.service_url import Url
 from src.utils.dependencies import AccessTokenBearer

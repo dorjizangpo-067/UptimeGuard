@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.model_url import URL
-from src.schemas.schema_url import CreateUrl, DisplayUrl, UpdateUrl, UserUrlResponse
+from src.schemas.schema_url import CreateUrl, DisplayUrl, UpdateUrl
 from src.utils.dependencies import AccessTokenBearer
 
 AccessTokenDep = Annotated[dict, Depends(AccessTokenBearer())]

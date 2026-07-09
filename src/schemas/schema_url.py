@@ -1,9 +1,12 @@
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ConfigDict
 
-from src.schemas.schema_auth import PublicUserResponse
+# for IDE TYPE_CHECKING purpose
+if TYPE_CHECKING:
+    from src.schemas.schema_auth import PublicUserResponse
 
 
 class URL(BaseModel):
@@ -41,4 +44,9 @@ class UserUrlResponse(URL):
     uid: uuid.UUID
     user_uid: uuid.UUID
     created_at: datetime
-    user: PublicUserResponse
+    user: "PublicUserResponse"
+
+
+from src.schemas.schema_auth import PublicUserResponse
+
+PublicUserResponse.model_rebuild()

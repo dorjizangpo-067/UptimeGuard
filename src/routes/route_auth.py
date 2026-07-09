@@ -12,6 +12,7 @@ from src.schemas.schema_auth import (
     LoginUser,
     PriviteUserResponse,
     UpdateUser,
+    UserWithUrlsResponse,
 )
 from src.services.service_auth import Auth
 from src.utils.dependencies import (
@@ -179,7 +180,7 @@ async def get_new_access_token(token_detail: RefreshTokenDep) -> dict:
 @auth_router.get("/me")
 async def get_current_user_route(
     token_detail: AccessTokenDep, session: SessionDep
-) -> PriviteUserResponse | None:
+) -> UserWithUrlsResponse | None:
     """Get Current user route
     Args:
         token_data: AccessTokenDep,
@@ -191,4 +192,9 @@ async def get_current_user_route(
     user = await user_services.get_current_user(
         token_data=token_detail, session=session
     )
-    return PriviteUserResponse.model_validate(user)
+
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
+        )
+    return UserWithUrlsResponse.model_validate(user)

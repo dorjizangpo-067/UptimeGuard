@@ -12,6 +12,9 @@ class Setting(BaseSettings):
     JWT_EXPIRY: int = 3600  # seconds
     JWT_REFRESH_TOKEN_EXPIRY: int = 2  # days
 
+    REDIS_URL: str
+    JTI_EXPIRY: int = 3600
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 

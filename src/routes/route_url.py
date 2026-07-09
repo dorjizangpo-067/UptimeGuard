@@ -23,7 +23,7 @@ AuthorizedUrlDep = Annotated[URL, Depends(get_authorized_url)]
 @url_router.post("/")
 async def create_url(
     url_data: CreateUrl, session: SessionDep, token_detail: AccessTokenDep
-) -> UserUrlResponse:
+) -> DisplayUrl:
     """Create new Url
     Args:
         url_data: CreateUrl
@@ -40,7 +40,7 @@ async def create_url(
     new_url = await url_services.create_url(
         user_uid=user_uid, url_data=url_data, session=session
     )
-    return new_url
+    return DisplayUrl.model_validate(new_url)
 
 
 @url_router.put("/{uid}")

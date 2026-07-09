@@ -30,7 +30,7 @@ class Url:
 
     async def create_url(
         self, user_uid: uuid.UUID, url_data: CreateUrl, session: AsyncSession
-    ) -> UserUrlResponse:
+    ) -> DisplayUrl:
         """Creating new url
         Args:
             user_uid: uuid.UUID
@@ -49,7 +49,7 @@ class Url:
         await session.commit()
         await session.refresh(new_url)
 
-        return UserUrlResponse.model_validate(new_url)
+        return DisplayUrl.model_validate(new_url)
 
     async def update_url(
         self, url: URL, update_url: UpdateUrl, session: AsyncSession

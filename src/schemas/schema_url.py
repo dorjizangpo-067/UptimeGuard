@@ -24,7 +24,6 @@ class DisplayUrl(URL):
     uid: uuid.UUID
     url: str
     created_at: datetime
-    user_uid: uuid.UUID
 
 
 class UpdateUrl(URL):

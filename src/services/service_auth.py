@@ -1,5 +1,7 @@
+import uuid
 from typing import Any
 
+from fastapi import HTTPException, status
 from pydantic import EmailStr
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,6 +13,22 @@ from src.utils.utils import generate_password_hash
 
 class Auth:
     """Auth Services"""
+
+    async def get_user_by_uid(
+        self, uid: uuid.UUID, session: AsyncSession
+    ) -> User | None:
+        """Fetch user with user id
+        Args:
+            uid: uuid.UUID
+            session: AsyncSession
+        Returns:
+            user with matching uid or None
+        """
+
+        statement = select(User).where(User.uid == uid)
+        result = await session.execute(statement=statement)
+
+        return result.scalar_one_or_none()
 
     async def get_user_by_email(
         self, email: EmailStr, session: AsyncSession
@@ -46,19 +64,29 @@ class Auth:
         self,
         token_data: dict[str, Any],
         session: AsyncSession,
-    ) -> User | None:
+    ) -> User:
         """Get Current User (extract from token_data and search from Database)
         Args:
             token_data: dict[str, Any]
+            session: AsyncSession,
 
         Returns:
-            user Data or None if email in token_data is invilad
+            user
+        Raise:
+            HTTPException
         """
 
-        user_emil = token_data["user"]["email"]
-        user = await self.get_user_by_email(email=user_emil, session=session)
+        try:
+            user_uid = uuid.UUID(token_data.get("user", {}).get("user_uid"))
+        except KeyError, TypeError, ValueError:
+            raise HTTPException(status_code=401, detail="Invalid token")
+
+        user = await self.get_user_by_uid(uid=user_uid, session=session)
         if user is None:
-            return None
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="User Not found"
+            )
+
         return user
 
     async def user_create(

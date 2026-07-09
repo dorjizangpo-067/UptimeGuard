@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.config import config
 from src.db.database import sessionmanager
+from src.db.redis import add_jti_to_blocklist
 from src.schemas.schema_auth import (
     CreateUser,
     LoginUser,
@@ -198,3 +199,16 @@ async def get_current_user_route(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
         )
     return UserWithUrlsResponse.model_validate(user)
+
+
+@auth_router.get("/logout")
+async def logout(token_detail: AccessTokenDep) -> dict:
+    """Logout jti (Block the JWT id)
+    Args:
+        token_detail: AccessTokenDep
+    Returns:
+        message"""
+
+    jti = token_detail["jti"]
+    await add_jti_to_blocklist(jti=jti)
+    return {"content": "Logout Out Successfully"}

@@ -1,11 +1,10 @@
-from typing import Annotated, Any
+from typing import Any
 
-from fastapi import Depends, HTTPException, status
+from fastapi import HTTPException, status
 from fastapi.requests import Request
 from fastapi.security import HTTPBearer
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.schemas.schema_auth import PriviteUserResponse
+from src.db.redis import token_in_blocklist
 from src.services.service_auth import Auth
 from src.utils.jwt_setup import decode_token
 
@@ -48,7 +47,17 @@ class TokenBearer(HTTPBearer):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail={
-                    "error": "This token is invalid or expired",
+                    "error": "This token is invalid, expired or Revoked",
+                    "resolution": "Please get new token",
+                },
+            )
+
+        # check token is revoked or not
+        if await token_in_blocklist(token_data["jti"]):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "error": "This token is invalid, expired or Revoked",
                     "resolution": "Please get new token",
                 },
             )

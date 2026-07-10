@@ -27,7 +27,7 @@ def create_url_save_token(data: dict) -> str:
     return token
 
 
-def decode_url_safe_token(token: str):
+def decode_url_safe_token(token: str) -> dict:
     """Deserialize a URLSafe token to get data"""
 
     try:

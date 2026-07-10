@@ -116,11 +116,6 @@ async def verify_token(token: str, session: SessionDep):
     """
 
     token_data = decode_url_safe_token(token=token)
-
-    # is token Valid
-    if not token_data:
-        raise VerificationFailed()
-
     user_email = token_data.get("email")
 
     if user_email:

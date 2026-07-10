@@ -35,5 +35,4 @@ async def create_message(
     message = MessageSchema(
         recipients=recipients, subject=sub, body=body, subtype=MessageType.html
     )
-    await mail.send_message(message=message)
     return message

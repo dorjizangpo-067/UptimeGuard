@@ -1,8 +1,9 @@
 from datetime import timedelta
-from email import message
+from tokenize import Token
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
+from fastapi.responses import JSONResponse
 from fastapi_mail import NameEmail
 from pydantic import EmailStr
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,6 +17,7 @@ from src.errors import (
     NothingToUpdate,
     UserAlreadyExists,
     UserNotFound,
+    VerificationFailed,
 )
 from src.mail import create_message, mail
 from src.schemas.schema_auth import (
@@ -32,7 +34,12 @@ from src.utils.dependencies import (
     RefreshTokenBearer,
 )
 from src.utils.jwt_setup import create_access_token
-from src.utils.utils import generate_password_hash, verify_password
+from src.utils.utils import (
+    create_url_save_token,
+    decode_url_safe_token,
+    generate_password_hash,
+    verify_password,
+)
 
 auth_router = APIRouter(tags=["Auth"])
 
@@ -54,13 +61,13 @@ async def send_mail(email_schema: EmailSchema) -> dict[str, str]:
     subject = "Welcome to our app"
 
     message = await create_message(recipients=recipients, sub=subject, body=html)
+    await mail.send_message(message)
+
     return {"message": "Email sent successfully"}
 
 
 @auth_router.post("/signup")
-async def create_user(
-    user_data: CreateUser, session: SessionDep
-) -> PriviteUserResponse:
+async def create_user(user_data: CreateUser, session: SessionDep) -> dict[str, Any]:
     """User Signup
     Args:
         user_data: CreateUser
@@ -77,7 +84,66 @@ async def create_user(
         raise UserAlreadyExists()
 
     user = await user_services.user_create(user_data=user_data, session=session)
-    return PriviteUserResponse.model_validate(user)
+
+    token = create_url_save_token({"email": user.email})
+    link = f"http://{config.DOMAIN}/api/v1/auth/verify/{token}"
+    html_message = f"""
+        <h1>Verify your Email</h1>
+        <p>Please click this <a href="{link}">link</a> to verify your email</p>
+    """
+    message = await create_message(
+        recipients=[NameEmail(name=user.full_name, email=user.email)],
+        sub="Verify your email",
+        body=html_message,
+    )
+    await mail.send_message(message)
+
+    return {
+        "user": PriviteUserResponse.model_validate(user),
+        "message": "Account Created! Check email to verify your account",
+    }
+
+
+@auth_router.post("/verify/{token}")
+async def verify_token(token: str, session: SessionDep):
+    """User Account Verification
+    Args:
+        token: str -> itsdengerous token
+        session: SessionDep
+    Returns:
+        JSONResponse for success and Error
+    Raise:
+        UserNotFound, VerificationFailed
+    """
+
+    token_data = decode_url_safe_token(token=token)
+
+    # is token Valid
+    if not token_data:
+        raise VerificationFailed()
+
+    user_email = token_data.get("email")
+
+    if user_email:
+        # user with this email exist
+        user = await user_services.get_user_by_email(email=user_email, session=session)
+
+        if not user:
+            raise UserNotFound()
+
+        # update is_verified to True
+        await user_services.update_user(
+            user=user, update_user={"is_verified": True}, session=session
+        )
+        return JSONResponse(
+            content={"message": "Account verified successfully"},
+            status_code=status.HTTP_200_OK,
+        )
+
+    return JSONResponse(
+        content={"message": "Error occured during verification"},
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+    )
 
 
 @auth_router.patch("/{email}")

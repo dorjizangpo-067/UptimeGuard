@@ -65,6 +65,15 @@ class UserWithUrlsResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class EmailRecipient(BaseModel):
+    name: str
+    email: EmailStr
+
+
+class EmailSchema(BaseModel):
+    recipients: list[EmailRecipient]
+
+
 from src.schemas.schema_url import DisplayUrl
 
 DisplayUrl.model_rebuild()

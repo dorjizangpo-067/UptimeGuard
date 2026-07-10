@@ -15,6 +15,13 @@ class Setting(BaseSettings):
     REDIS_URL: str
     JTI_EXPIRY: int = 3600
 
+    MAIL_USERNAME: str
+    MAIL_PASSWORD: SecretStr
+    MAIL_SERVER: str
+    MAIL_PORT: int = 587
+    MAIL_FROM: SecretStr
+    MAIL_FROM_NAME: str
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 

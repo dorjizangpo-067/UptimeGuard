@@ -1,7 +1,9 @@
 from datetime import timedelta
+from email import message
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends
+from fastapi_mail import NameEmail
 from pydantic import EmailStr
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,8 +17,10 @@ from src.errors import (
     UserAlreadyExists,
     UserNotFound,
 )
+from src.mail import create_message, mail
 from src.schemas.schema_auth import (
     CreateUser,
+    EmailSchema,
     LoginUser,
     PriviteUserResponse,
     UpdateUser,
@@ -38,6 +42,19 @@ user_services = Auth()
 SessionDep = Annotated[AsyncSession, Depends(sessionmanager.get_session)]
 AccessTokenDep = Annotated[dict, Depends(AccessTokenBearer())]
 RefreshTokenDep = Annotated[dict, Depends(RefreshTokenBearer())]
+
+
+@auth_router.post("/send_mail")
+async def send_mail(email_schema: EmailSchema) -> dict[str, str]:
+    recipients = [
+        NameEmail(name=r.name, email=r.email) for r in email_schema.recipients
+    ]
+
+    html = "<h1>Welcome to the app</h1>"
+    subject = "Welcome to our app"
+
+    message = await create_message(recipients=recipients, sub=subject, body=html)
+    return {"message": "Email sent successfully"}
 
 
 @auth_router.post("/signup")

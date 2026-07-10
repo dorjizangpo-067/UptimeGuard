@@ -1,11 +1,11 @@
 import uuid
 from typing import Any
 
-from fastapi import HTTPException, status
 from pydantic import EmailStr
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.errors import InvalidToken, UserNotFound
 from src.models.model_auth import User
 from src.schemas.schema_auth import CreateUser, PriviteUserResponse
 from src.utils.utils import generate_password_hash
@@ -79,13 +79,11 @@ class Auth:
         try:
             user_uid = uuid.UUID(token_data.get("user", {}).get("user_uid"))
         except KeyError, TypeError, ValueError:
-            raise HTTPException(status_code=401, detail="Invalid token")
+            raise InvalidToken()
 
         user = await self.get_user_by_uid(uid=user_uid, session=session)
         if user is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="User Not found"
-            )
+            raise UserNotFound()
 
         return user
 

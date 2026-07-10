@@ -1,10 +1,10 @@
 from typing import Any
 
-from fastapi import HTTPException, status
 from fastapi.requests import Request
 from fastapi.security import HTTPBearer
 
 from src.db.redis import token_in_blocklist
+from src.errors import AccessTokenRequired, InvalidToken, RefreshTokenRequired
 from src.services.service_auth import Auth
 from src.utils.jwt_setup import decode_token
 
@@ -44,23 +44,11 @@ class TokenBearer(HTTPBearer):
 
         # decode_token returns None then Exception raise
         if token_data is None:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail={
-                    "error": "This token is invalid, expired or Revoked",
-                    "resolution": "Please get new token",
-                },
-            )
+            raise InvalidToken()
 
         # check token is revoked or not
         if await token_in_blocklist(token_data["jti"]):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail={
-                    "error": "This token is invalid, expired or Revoked",
-                    "resolution": "Please get new token",
-                },
-            )
+            raise InvalidToken()
 
         # chiled class to ckeck token is access or refresh token
         self.verify_token_data(token_data=token_data)
@@ -83,10 +71,7 @@ class AccessTokenBearer(TokenBearer):
     def verify_token_data(self, token_data: dict) -> None:
         # reject refresh token
         if token_data and token_data["refresh"]:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Please provide an access token",
-            )
+            raise AccessTokenRequired()
 
 
 class RefreshTokenBearer(TokenBearer):
@@ -95,10 +80,7 @@ class RefreshTokenBearer(TokenBearer):
     def verify_token_data(self, token_data: dict) -> None:
         # reject access token
         if token_data and not token_data["refresh"]:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Please provide a refresh token",
-            )
+            raise RefreshTokenRequired()
 
 
 def is_token_valid(token: str) -> bool:

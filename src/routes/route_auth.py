@@ -1,13 +1,20 @@
 from datetime import timedelta
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from pydantic import EmailStr
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.config import config
 from src.db.database import sessionmanager
 from src.db.redis import add_jti_to_blocklist
+from src.errors import (
+    InvalidCredentials,
+    InvalidToken,
+    NothingToUpdate,
+    UserAlreadyExists,
+    UserNotFound,
+)
 from src.schemas.schema_auth import (
     CreateUser,
     LoginUser,
@@ -50,10 +57,7 @@ async def create_user(
         email=user_data.email, session=session
     )
     if email_exist:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User aleady exist",
-        )
+        raise UserAlreadyExists()
 
     user = await user_services.user_create(user_data=user_data, session=session)
     return PriviteUserResponse.model_validate(user)
@@ -81,14 +85,10 @@ async def update_user(
     )
 
     if current_user is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
-        )
+        raise UserNotFound()
 
     if current_user.email != email:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invilad Action"
-        )
+        raise InvalidCredentials()
 
     # Prepare update dictionary, ignoring unset fields
     update_dict = update_data.model_dump(exclude_unset=True)
@@ -102,10 +102,7 @@ async def update_user(
 
     # No fields to update
     if not update_dict:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No fields to update",
-        )
+        raise NothingToUpdate()
 
     updated_user = await user_services.update_user(
         user=current_user, update_user=update_dict, session=session
@@ -132,10 +129,7 @@ async def login(login_data: LoginUser, session: SessionDep) -> dict[str, Any]:
         password=login_data.password.get_secret_value(),
         hash_password=user.password_hashed,
     ):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Email or Password Is incorrect",
-        )
+        raise InvalidCredentials()
 
     # jwt_payload data
     payload = {
@@ -195,9 +189,8 @@ async def get_current_user_route(
     )
 
     if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
-        )
+        raise InvalidToken()
+
     return UserWithUrlsResponse.model_validate(user)
 
 

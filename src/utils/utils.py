@@ -1,6 +1,5 @@
-import logging
-
-from itsdangerous import URLSafeSerializer
+from fastapi import HTTPException
+from itsdangerous import BadSignature, SignatureExpired, URLSafeSerializer
 from pwdlib import PasswordHash
 
 from src.config import config
@@ -36,5 +35,7 @@ def decode_url_safe_token(token: str):
 
         return token_data
 
-    except Exception as e:
-        logging.error(str(e))
+    except SignatureExpired:
+        raise HTTPException(status_code=400, detail="Token has expired")
+    except BadSignature:
+        raise HTTPException(status_code=400, detail="Invalid token")

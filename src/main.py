@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 
 from src.errors import register_error_handlers
+from src.middleware import register_middleware
 from src.models.model_auth import User
 from src.models.model_url import URL
 from src.routes.route_auth import auth_router
@@ -18,6 +19,7 @@ app = FastAPI(
 )
 
 register_error_handlers(app)
+register_middleware(app)
 
 app.include_router(auth_router, prefix=f"/api/{version}/auth", tags=["Auth"])
 app.include_router(url_router, prefix=f"/api/{version}/url", tags=["url"])

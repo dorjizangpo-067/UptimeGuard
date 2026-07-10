@@ -71,6 +71,12 @@ class NothingToUpdate(UptimeGuard):
     pass
 
 
+class VerificationFailed(UptimeGuard):
+    """User Not found"""
+
+    pass
+
+
 def create_exception_handler(
     status_code: int, initial_detail: Any
 ) -> Callable[[Request, Exception], JSONResponse]:
@@ -186,6 +192,17 @@ def register_error_handlers(app: FastAPI):
             initial_detail={
                 "message": "Nothing to Update",
                 "error_code": "nothing_to_update",
+            },
+        ),
+    )
+
+    app.add_exception_handler(
+        VerificationFailed,
+        create_exception_handler(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            initial_detail={
+                "message": "Token is Invalid",
+                "error_code": "failed_to_verify",
             },
         ),
     )

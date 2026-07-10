@@ -23,7 +23,7 @@ def verify_password(password: str, hash_password: str) -> bool:
 def create_url_save_token(data: dict) -> str:
     """Serialize a dict into a URLSafe token"""
 
-    token = serializer.dumps(data)
+    token = serializer.dumps(data, salt="email-configuration")
     return token
 
 
@@ -31,7 +31,7 @@ def decode_url_safe_token(token: str):
     """Deserialize a URLSafe token to get data"""
 
     try:
-        token_data = serializer.loads(token)
+        token_data = serializer.loads(token, salt="email-configuration", max_age=3600)
 
         return token_data
 

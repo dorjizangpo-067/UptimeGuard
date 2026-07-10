@@ -21,7 +21,7 @@ class Setting(BaseSettings):
     MAIL_PORT: int = 587
     MAIL_FROM: SecretStr
     MAIL_FROM_NAME: str
-
+    DOMAIN: str
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 

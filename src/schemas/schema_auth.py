@@ -74,6 +74,23 @@ class EmailSchema(BaseModel):
     recipients: list[EmailRecipient]
 
 
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+
+class PasswordResetConfirm(BaseModel):
+    new_password: SecretStr
+    confirm_password: SecretStr
+
+    model_config = ConfigDict(extra="forbid")
+
+    @model_validator(mode="after")
+    def verify_password_match(self):
+        if self.new_password != self.confirm_password:
+            raise ValueError("Passwords do not match")
+        return self
+
+
 from src.schemas.schema_url import DisplayUrl
 
 DisplayUrl.model_rebuild()

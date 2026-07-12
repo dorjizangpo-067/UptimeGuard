@@ -16,13 +16,14 @@ from src.errors import (
     NothingToUpdate,
     UserAlreadyExists,
     UserNotFound,
-    VerificationFailed,
 )
 from src.mail import create_message, mail
 from src.schemas.schema_auth import (
     CreateUser,
     EmailSchema,
     LoginUser,
+    PasswordResetConfirm,
+    PasswordResetRequest,
     PriviteUserResponse,
     UpdateUser,
     UserWithUrlsResponse,
@@ -103,7 +104,7 @@ async def create_user(user_data: CreateUser, session: SessionDep) -> dict[str, A
     }
 
 
-@auth_router.post("/verify/{token}")
+@auth_router.get("/verify/{token}")
 async def verify_token(token: str, session: SessionDep):
     """User Account Verification
     Args:
@@ -269,6 +270,77 @@ async def get_current_user_route(
         raise InvalidToken()
 
     return UserWithUrlsResponse.model_validate(user)
+
+
+@auth_router.post("/password-reset-request", status_code=status.HTTP_200_OK)
+async def password_reset_request(
+    email_data: PasswordResetRequest, session: SessionDep
+) -> dict[str, str]:
+    """Request password reset email
+    Args:
+        email_data: PasswordResetRequest
+        session: SessionDep
+    Returns:
+        message: dict
+    Raises:
+        UserNotFound
+    """
+
+    # Check if user exists
+    user = await user_services.get_user_by_email(
+        email=email_data.email, session=session
+    )
+
+    if not user:
+        raise UserNotFound()
+
+    # Create token and link
+    token = create_url_save_token(data={"email": email_data.email})
+    link = f"http://{config.DOMAIN}/api/v1/auth/password-reset-confirm/{token}"
+
+    html_message = f"""
+    <h1>Reset Your Password</h1>
+    <p>Please click this <a href="{link}">link</a> to Reset Your Password</p>
+    """
+
+    message = await create_message(
+        recipients=[NameEmail(name=user.full_name, email=user.email)],
+        sub="Reset Your Password",
+        body=html_message,
+    )
+
+    await mail.send_message(message)
+
+    return {"message": "Password reset link sent to your email"}
+
+
+@auth_router.post("/password-reset-confirm/{token}")
+async def password_reset_confirm(
+    token: str,
+    reset_data: PasswordResetConfirm,
+    session: SessionDep,
+) -> dict[str, str]:
+    """Confirm password reset"""
+
+    token_data = decode_url_safe_token(token=token)
+    email = token_data.get("email")
+    if not email:
+        raise InvalidToken()
+
+    user = await user_services.get_user_by_email(email=email, session=session)
+
+    if not user:
+        raise UserNotFound()
+
+    update_dict = {
+        "password_hashed": generate_password_hash(
+            reset_data.new_password.get_secret_value()
+        )
+    }
+
+    await user_services.update_user(user=user, update_user=update_dict, session=session)
+
+    return {"message": "Password reset successfully"}
 
 
 @auth_router.get("/logout")

@@ -1,12 +1,13 @@
 from datetime import timedelta
-from typing import Annotated, Any
+from typing import Annotated, Any, cast
 
+from celery import Task
 from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
-from fastapi_mail import NameEmail
 from pydantic import EmailStr
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.celery_task import send_email
 from src.config import config
 from src.db.database import sessionmanager
 from src.db.redis import add_jti_to_blocklist
@@ -17,7 +18,6 @@ from src.errors import (
     UserAlreadyExists,
     UserNotFound,
 )
-from src.mail import create_message, mail
 from src.schemas.schema_auth import (
     CreateUser,
     EmailSchema,
@@ -55,15 +55,12 @@ VerifiedUserDep = Annotated[dict, Depends(verified_user_dependency)]
 
 @auth_router.post("/send_mail")
 async def send_mail(email_schema: EmailSchema) -> dict[str, str]:
-    recipients = [
-        NameEmail(name=r.name, email=r.email) for r in email_schema.recipients
-    ]
+    recipients = [{"name": r.name, "email": r.email} for r in email_schema.recipients]
 
     html = "<h1>Welcome to the app</h1>"
     subject = "Welcome to our app"
 
-    message = await create_message(recipients=recipients, sub=subject, body=html)
-    await mail.send_message(message)
+    cast(Task, send_email).delay(recipients=recipients, subject=subject, body=html)
 
     return {"message": "Email sent successfully"}
 
@@ -93,12 +90,12 @@ async def create_user(user_data: CreateUser, session: SessionDep) -> dict[str, A
         <h1>Verify your Email</h1>
         <p>Please click this <a href="{link}">link</a> to verify your email</p>
     """
-    message = await create_message(
-        recipients=[NameEmail(name=user.full_name, email=user.email)],
-        sub="Verify your email",
+
+    cast(Task, send_email).delay(
+        recipients=[{"name": user.full_name, "email": user.email}],
+        subject="Email Varification",
         body=html_message,
     )
-    await mail.send_message(message)
 
     return {
         "user": PriviteUserResponse.model_validate(user),
@@ -276,7 +273,7 @@ async def get_current_user_route(
 
 @auth_router.post("/password-reset-request", status_code=status.HTTP_200_OK)
 async def password_reset_request(
-    email_data: PasswordResetRequest, session: SessionDep, _: VerifiedUserDep
+    email: PasswordResetRequest, session: SessionDep
 ) -> dict[str, str]:
     """Request password reset email
     Args:
@@ -289,15 +286,13 @@ async def password_reset_request(
     """
 
     # Check if user exists
-    user = await user_services.get_user_by_email(
-        email=email_data.email, session=session
-    )
+    user = await user_services.get_user_by_email(email=email.email, session=session)
 
     if not user:
         raise UserNotFound()
 
     # Create token and link
-    token = create_url_save_token(data={"email": email_data.email})
+    token = create_url_save_token(data={"email": email.email})
     link = f"http://{config.DOMAIN}/api/v1/auth/password-reset-confirm/{token}"
 
     html_message = f"""
@@ -305,13 +300,11 @@ async def password_reset_request(
     <p>Please click this <a href="{link}">link</a> to Reset Your Password</p>
     """
 
-    message = await create_message(
-        recipients=[NameEmail(name=user.full_name, email=user.email)],
-        sub="Reset Your Password",
+    cast(Task, send_email).delay(
+        recipients=[{"name": user.full_name, "email": user.email}],
+        subject="Reset Password Request",
         body=html_message,
     )
-
-    await mail.send_message(message)
 
     return {"message": "Password reset link sent to your email"}
 
@@ -321,7 +314,6 @@ async def password_reset_confirm(
     token: str,
     reset_data: PasswordResetConfirm,
     session: SessionDep,
-    _: VerifiedUserDep,
 ) -> dict[str, str]:
     """Confirm password reset"""
 

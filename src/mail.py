@@ -29,9 +29,7 @@ conf = ConnectionConfig(
 mail = FastMail(config=conf)
 
 
-async def create_message(
-    recipients: list[NameEmail], sub: str, body: str
-) -> MessageSchema:
+def create_message(recipients: list[NameEmail], sub: str, body: str) -> MessageSchema:
     message = MessageSchema(
         recipients=recipients, subject=sub, body=body, subtype=MessageType.html
     )

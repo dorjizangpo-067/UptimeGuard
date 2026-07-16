@@ -71,8 +71,14 @@ class NothingToUpdate(UptimeGuard):
     pass
 
 
+class NotVerified(UptimeGuard):
+    """User Not Verified"""
+
+    pass
+
+
 class VerificationFailed(UptimeGuard):
-    """User Not found"""
+    """User Verification Failed("""
 
     pass
 
@@ -203,6 +209,17 @@ def register_error_handlers(app: FastAPI):
             initial_detail={
                 "message": "Token is Invalid",
                 "error_code": "failed_to_verify",
+            },
+        ),
+    )
+
+    app.add_exception_handler(
+        NotVerified,
+        create_exception_handler(
+            status_code=status.HTTP_403_FORBIDDEN,
+            initial_detail={
+                "message": "User is not Verified, Please Verify account to access this feature",
+                "error_code": "user_not_verify",
             },
         ),
     )

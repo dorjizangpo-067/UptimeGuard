@@ -34,6 +34,7 @@ from src.utils.dependencies import (
     RefreshTokenBearer,
 )
 from src.utils.jwt_setup import create_access_token
+from src.utils.permissions import verified_user_dependency
 from src.utils.utils import (
     create_url_save_token,
     decode_url_safe_token,
@@ -49,6 +50,7 @@ user_services = Auth()
 SessionDep = Annotated[AsyncSession, Depends(sessionmanager.get_session)]
 AccessTokenDep = Annotated[dict, Depends(AccessTokenBearer())]
 RefreshTokenDep = Annotated[dict, Depends(RefreshTokenBearer())]
+VerifiedUserDep = Annotated[dict, Depends(verified_user_dependency)]
 
 
 @auth_router.post("/send_mail")
@@ -274,7 +276,7 @@ async def get_current_user_route(
 
 @auth_router.post("/password-reset-request", status_code=status.HTTP_200_OK)
 async def password_reset_request(
-    email_data: PasswordResetRequest, session: SessionDep
+    email_data: PasswordResetRequest, session: SessionDep, _: VerifiedUserDep
 ) -> dict[str, str]:
     """Request password reset email
     Args:
@@ -319,6 +321,7 @@ async def password_reset_confirm(
     token: str,
     reset_data: PasswordResetConfirm,
     session: SessionDep,
+    _: VerifiedUserDep,
 ) -> dict[str, str]:
     """Confirm password reset"""
 

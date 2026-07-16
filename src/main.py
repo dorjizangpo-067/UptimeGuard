@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 
 from src.errors import register_error_handlers
 from src.middleware import register_middleware
@@ -6,6 +6,7 @@ from src.models.model_auth import User
 from src.models.model_url import URL
 from src.routes.route_auth import auth_router
 from src.routes.route_url import url_router
+from src.utils.permissions import verified_user_dependency
 
 version = "v1"
 
@@ -22,4 +23,9 @@ register_error_handlers(app)
 register_middleware(app)
 
 app.include_router(auth_router, prefix=f"/api/{version}/auth", tags=["Auth"])
-app.include_router(url_router, prefix=f"/api/{version}/url", tags=["url"])
+app.include_router(
+    url_router,
+    prefix=f"/api/{version}/url",
+    tags=["url"],
+    dependencies=[Depends(verified_user_dependency)],
+)
